@@ -1,37 +1,32 @@
 #!/usr/bin/env python
 
+import pandas as pd
+import xlrd
 import sys
 import os
-import csv
-import datetime
-import codecs
 
 reload(sys)
 sys.setdefaultencoding('utf-8')
+pd.set_option('mode.chained_assignment', None)
+
 
 def convert_number(number):
     result = str(number)
-    result = result.replace('.', '')
-    result = result.replace(',', '.')
+    # result = result.replace('.', '')
+    # result = result.replace(',', '.')
     return result
+
 
 def convert_date(date):
-    day, month, year = date.split('/')
-    return year + '-' + month + '-' + day
-
-def is_date(date):
-    result = True
-    try:
-        day, month, year = date.split('/')
-        datetime.datetime(int(year), int(month), int(day))
-    except ValueError:
-        result = False
+    chan = date.split('/')
+    result = chan[2] + '-' + chan[1] + '-' + chan[0]
     return result
 
-def join_texts(t1,t2):
+
+def join_texts(t1, t2):
     lista = []
     t1 = str(t1)
-    t2= str(t2)
+    t2 = str(t2)
     if 'nan' != t1:
         lista.append(t1)
     if 'nan' != t2:
@@ -40,99 +35,79 @@ def join_texts(t1,t2):
     result = result.replace(',', ' ')
     return result
 
+
 def get_name(date):
-    mes = ['na',
-            'Enero',
-            'Febrero',
-            'Marzo',
-            'Abril',
-            'Mayo',
-            'Junio',
-            'julio',
-            'Agosto',
-            'Septiembre',
-            'Octubre',
-            'Noviembre',
-            'Diciembre']
+    mes = ['na', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+           'julio', 'Agosto', 'Septiebre', 'Octubre', 'Noviembre', 'Diciembre']
     chan = date.split('-')
     return mes[int(chan[1])] + ' ' + chan[0]
 
+
 def final_date(date):
     chan = date.split('-')
-    mes = str(int(chan[1]) + 1).zfill(2) 
-    return chan[0] + '-' + mes  + '-01'
+    mes = str(int(chan[1]) + 1).zfill(2)
+    return chan[0] + '-' + mes + '-01'
 
-def cabeceras():
-    return ['date',
-            'name',
-            'balance_start',
-            'balance_end_real',
-            'line_ids/date',
-            'line_ids/name',
-            'line_ids/amount']
-
-def save_csv(campos, filename):
-    with codecs.open(filename, 'w', 'utf-8') as out:
-        csv_writer = csv.writer(out, delimiter=',', quotechar='"')
-        csv_writer.writerow(cabeceras())
-        for line in campos:
-            csv_writer.writerow(line)
-
-def extract_csv(filename):
-    campos = []
-    saldo_inicial = ''
-    saldo_final = ''
-    fecha_inicial = ''
-    try:
-        with codecs.open(filename, 'r', encoding='iso-8859-1', errors='replace') as csv_file:
-            csv_reader = csv.reader(csv_file, delimiter='\t')
-            for row in csv_reader:
-                if len(row) > 6:
-                    if row[0] != '' and is_date(row[0]):
-                        date = convert_date(row[0])
-                        if '' == fecha_inicial:
-                            fecha_inicial = date 
-                        cantidad = convert_number(row[6])
-                        texto = join_texts(row[3].strip(), row[4].strip("\'"))
-                        campos.append([None, None, None, None, date, texto, cantidad])
-                    else:
-                        if 'Saldo inicial' in row[3]:
-                            saldo_inicial = row[6]
-                        elif 'Saldo inicial' in row[4]:
-                            saldo_inicial = row[7]
-                        elif 'Saldo final' in row[3]:
-                            saldo_final = row[6]
-                        elif 'Saldo final' in row[4]:
-                            saldo_final = row[7]
-            campos.reverse()
-            campos[0][0] = final_date(fecha_inicial)
-            campos[0][1] = get_name(fecha_inicial)
-            campos[0][2] = convert_number(saldo_inicial)
-            campos[0][3] = convert_number(saldo_final)
-    except IOError as e:
-        err_string = 'Ops! No se ha encontrado el archivo ' + filename
-        print(err_string)
-    except:
-        err_string = 'Ops! Error inesperado' 
-        print(err_string)
-    return campos
 
 def main():
     if len(sys.argv) > 1:
         input_file = sys.argv[1]
+
         if len(sys.argv) > 2:
             output_file = sys.argv[2]
         else:
             output_file = os.path.splitext(input_file)[0] + '.csv'
-        campos = extract_csv(input_file)
-        if campos:
-            save_csv(campos, output_file)
-        else:
-            err_string = 'No se han obtenido datos' 
-            print(err_string)
+
+        try:
+            xl = pd.ExcelFile(input_file)
+        except IOError:
+            help_string = 'El archivo "' + input_file + '" no se ha podido abrir'
+            print(help_string)
+            sys.exit()
+        except xlrd.XLRDError:
+            help_string = 'El archivo "' + input_file + '" no parece una hoja de Excell'
+            print(help_string)
+            sys.exit()
+
+        lista_hojas = xl.sheet_names
+        df = xl.parse(lista_hojas[0])
+        ndf = df.iloc[15:]
+
+        ndf.columns = ["nada", "fecha", "nada", "nada", "concepto",
+                       "descripcion", "importe", "saldo", "nada", "nada",
+                       "nada"]
+
+        saldo_primero = float(convert_number(ndf['saldo'].iloc[-1]))
+        mov_ini = float(convert_number(ndf['importe'].iloc[-1]))
+        saldo_inicial = saldo_primero - mov_ini
+
+        ndf.loc[:, 'importe'] = ndf.loc[:, 'importe'].apply(convert_number)
+        ndf.loc[:, 'saldo'] = ndf.loc[:, 'saldo'].apply(convert_number)
+        ndf.loc[:, 'fecha'] = ndf.loc[:, 'fecha'].map(convert_date)
+        ndf['descripcion'] = ndf['descripcion'].combine(ndf['concepto'],
+                                                        join_texts)
+        ndf.loc[:, 'vacio'] = ''
+        final = pd.DataFrame(ndf[['vacio', 'vacio', 'vacio', 'vacio', 'fecha',
+                                  'descripcion', 'importe']])
+        final.columns = ['date', 'name', 'balance_start', 'balance_end_real',
+                         'line_ids/date', 'line_ids/name', 'line_ids/amount']
+
+        fecha_inicial = final['line_ids/date'].iloc[-1]
+
+        final['date'].iloc[0] = final_date(fecha_inicial)
+        final['balance_end_real'].iloc[0] = ndf['saldo'].iloc[0]
+        final['balance_start'].iloc[0] = saldo_inicial
+        final['name'].iloc[0] = get_name(fecha_inicial)
+
+        try:
+            final.to_csv(output_file, sep=',', encoding='utf-8', index=False)
+        except IOError:
+            help_string = 'No se ha podido guardar el archivo ' + output_file
+            print(help_string)
 
     else:
-        help_string = 'Uso: '+  sys.argv[0] + ' input.xls [output.csv]'
+        help_string = 'Uso: ' + sys.argv[0] + ' input.xls [output.csv]'
         print(help_string)
+
 
 main()

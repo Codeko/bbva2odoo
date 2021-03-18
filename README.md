@@ -12,4 +12,6 @@ Si no se define, se usa el mismo del xls pero con extensión csv
 
 ## Instalación:
 
-Debería funcionar tal cual
+Para instalar los (2) módulos necesarios:
+
+`pip install -r requeriments.txt`
