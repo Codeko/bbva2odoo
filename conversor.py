@@ -2,11 +2,9 @@
 
 import pandas as pd
 import xlrd
-import sys
+import sys 
 import os
 
-reload(sys)
-sys.setdefaultencoding('utf-8')
 pd.set_option('mode.chained_assignment', None)
 
 
