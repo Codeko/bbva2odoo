@@ -28,3 +28,4 @@ O con pip3:
 `pip3 install -r requeriments.txt`
 
 En las últimas pruebas es más rápida la instalación con apt porque con pip hay que compilar pandas y tarda hasta 20 minutos.
+

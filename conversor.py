@@ -4,6 +4,10 @@ import pandas as pd
 import xlrd
 import sys 
 import os
+import warnings
+
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
 
 pd.set_option('mode.chained_assignment', None)
 
@@ -70,10 +74,17 @@ def main():
         lista_hojas = xl.sheet_names
         df = xl.parse(lista_hojas[0])
         ndf = df.iloc[15:]
-
+        """
         ndf.columns = ["nada", "fecha", "nada", "nada", "concepto",
                        "descripcion", "importe", "saldo", "nada", "nada",
                        "nada"]
+        ndf.columns = ["nada", "nada", "fecha", "nada", "nada", "concepto", "nada", "descripcion", "importe", "saldo", "nada", "nada", "nada"]
+        """
+
+        ndf.columns = ["nada", "nada", "fecha", "nada",
+                       "nada", "nada", "concepto", "nada",
+                       "descripcion", "importe", "saldo",
+                       "nada", "nada", "nada"]
 
         saldo_primero = float(convert_number(ndf['saldo'].iloc[-1]))
         mov_ini = float(convert_number(ndf['importe'].iloc[-1]))
