@@ -73,18 +73,26 @@ def main():
 
         lista_hojas = xl.sheet_names
         df = xl.parse(lista_hojas[0])
+        headers = df.iloc[14]
         ndf = df.iloc[15:]
+
+        if headers[4] == "CUENTA":
+            ndf.columns = ["nada", "nada", "fecha", "nada",
+                           "nada", "nada", "concepto", "nada",
+                           "descripcion", "importe", "saldo",
+                           "nada", "nada", "nada"]
+        else:
+            ndf.columns = ["nada", "nada", "fecha",
+                           "nada", "nada", "concepto", "nada",
+                           "descripcion", "importe", "saldo",
+                           "nada", "nada", "nada"]
+
         """
         ndf.columns = ["nada", "fecha", "nada", "nada", "concepto",
                        "descripcion", "importe", "saldo", "nada", "nada",
                        "nada"]
         ndf.columns = ["nada", "nada", "fecha", "nada", "nada", "concepto", "nada", "descripcion", "importe", "saldo", "nada", "nada", "nada"]
         """
-
-        ndf.columns = ["nada", "nada", "fecha", "nada",
-                       "nada", "nada", "concepto", "nada",
-                       "descripcion", "importe", "saldo",
-                       "nada", "nada", "nada"]
 
         saldo_primero = float(convert_number(ndf['saldo'].iloc[-1]))
         mov_ini = float(convert_number(ndf['importe'].iloc[-1]))
